@@ -1,209 +1,365 @@
--- COUNTER BLOX ULTIMATE RAGE + RAINBOW VISUALS (Merged 2025 Meta)
--- Features: Silent Aim, No Spread, Ragebot, Bhop, Fakelag, Tracers, Rainbow ESP/Chams
--- Z = Toggle Menu, X = Toggle Rage Features
+-- COUNTER BLOX EXTERNAL MENU - FUSION (Aimbot + Rainbow Visuals + Particles + Extras)
+-- Made by CLAW / Inspired by NotSlater external style
+-- Z = Toggle full menu visibility
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
 local Camera = workspace.CurrentCamera
-local LP = Players.LocalPlayer
-local Mouse = LP:GetMouse()
+local LocalPlayer = Players.LocalPlayer
 
--- Settings
+-- Settings (tied to menu toggles)
 local Settings = {
-    -- Rage
-    RageEnabled = false,
-    SilentAim = true,
-    FOV = 150,
-    HitPart = "Head",
-    NoSpread = true,
-    AutoShoot = true,
-    Bhop = true,
-    Fakelag = true,
-    FakelagAmount = 8,
+    -- Aimbot
+    Aimbot = false,
+    Smoothing = true,
+    FOVCircle = true,
+    VisibleCheck = false,
+    TeamCheck = true,
+    AimbotFOV = 180,
+    SmoothFactor = 0.18,
+    AimKey = Enum.KeyCode.E,
     
     -- Visuals
-    EspEnabled = true,
-    Rainbow = true,
-    RainbowSpeed = 2,
-    Tracers = true,
-    Chams = true,
-    Box = true,
-    Name = true,
-    Health = true,
-    Distance = true,
-    TeamCheck = true,
-    VisibleOnly = false
+    PlayerChams = false,
+    WorldVisuals = false,
+    Particles = false,
+    ParticleMode = 1, -- 1=Sparkles, 2=Aura
+    ParticleSize = 1.8,
+    
+    -- Extras
+    SpeedHack = false,
+    SpeedValue = 50,
+    ThirdPerson = false
 }
 
--- UI
+-- Particle / color tables
+local particleTex = {
+    "rbxassetid://243098098",   -- Sparkles
+    "rbxassetid://131104435"    -- Aura
+}
+local chamColors = {
+    Color3.fromRGB(255,105,180), Color3.fromRGB(255,0,0), Color3.fromRGB(0,255,0),
+    Color3.fromRGB(0,100,255), Color3.fromRGB(255,255,255)
+}
+local currentChamColor = 1
+
+-- UI - External Menu Style
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "RageMenu"
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 380, 0, 480)
-Main.Position = UDim2.new(0.5, -190, 0.5, -240)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-local Corner = Instance.new("UICorner", Main) Corner.CornerRadius = UDim.new(0, 14)
+ScreenGui.Name = "ExternalCBMenu"
+ScreenGui.ResetOnSpawn = false
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(28, 28, 40)
-Title.Text = "ULTIMATE CB RAGE + RAINBOW"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-local Grad = Instance.new("UIGradient", Title)
-Grad.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255,80,180)), ColorSequenceKeypoint.new(1, Color3.fromRGB(80,180,255))}
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 420, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -170)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
 
-local y = 50
-local function AddToggle(name, key, default)
-    local Toggle = Instance.new("TextButton", Main)
-    Toggle.Size = UDim2.new(0.9, 0, 0, 32)
-    Toggle.Position = UDim2.new(0.05, 0, 0, y)
-    Toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    Toggle.Text = name .. ": " .. (default and "ON" or "OFF")
-    Toggle.TextColor3 = Color3.new(1,1,1)
-    Toggle.Font = Enum.Font.Gotham
-    Toggle.TextSize = 13
-    local tc = Instance.new("UICorner", Toggle) tc.CornerRadius = UDim.new(0, 8)
+local TitleBar = Instance.new("Frame", MainFrame)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleBar.BorderSizePixel = 0
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 6)
+
+local Title = Instance.new("TextLabel", TitleBar)
+Title.Size = UDim2.new(1, -10, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "External Menu - Rainbow Elite"
+Title.Font = Enum.Font.Code
+Title.TextSize = 14
+Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Left side buttons
+local AimbotBtn = Instance.new("TextButton", MainFrame)
+AimbotBtn.Size = UDim2.new(0, 140, 0, 35)
+AimbotBtn.Position = UDim2.new(0, 10, 0, 50)
+AimbotBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+AimbotBtn.Text = "Aimbot"
+AimbotBtn.Font = Enum.Font.Code
+AimbotBtn.TextSize = 13
+AimbotBtn.TextColor3 = Color3.new(1,1,1)
+
+local VisualsBtn = Instance.new("TextButton", MainFrame)
+VisualsBtn.Size = UDim2.new(0, 140, 0, 35)
+VisualsBtn.Position = UDim2.new(0, 10, 0, 95)
+VisualsBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+VisualsBtn.Text = "Visuals"
+VisualsBtn.Font = Enum.Font.Code
+VisualsBtn.TextSize = 13
+VisualsBtn.TextColor3 = Color3.new(1,1,1)
+
+local ExtrasBtn = Instance.new("TextButton", MainFrame)
+ExtrasBtn.Size = UDim2.new(0, 140, 0, 35)
+ExtrasBtn.Position = UDim2.new(0, 10, 0, 140)
+ExtrasBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+ExtrasBtn.Text = "Extras"
+ExtrasBtn.Font = Enum.Font.Code
+ExtrasBtn.TextSize = 13
+ExtrasBtn.TextColor3 = Color3.new(1,1,1)
+
+-- Right side black panel with toggles
+local RightPanel = Instance.new("Frame", MainFrame)
+RightPanel.Size = UDim2.new(0, 240, 1, -50)
+RightPanel.Position = UDim2.new(0, 170, 0, 45)
+RightPanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+RightPanel.BorderSizePixel = 0
+Instance.new("UICorner", RightPanel).CornerRadius = UDim.new(0, 4)
+
+local ToggleContainer = Instance.new("Frame", RightPanel)
+ToggleContainer.Size = UDim2.new(1, -10, 1, -10)
+ToggleContainer.Position = UDim2.new(0, 5, 0, 5)
+ToggleContainer.BackgroundTransparency = 1
+
+-- Function to create toggle line
+local function CreateToggle(name, yPos, callback)
+    local label = Instance.new("TextLabel", ToggleContainer)
+    label.Size = UDim2.new(0.7, 0, 0, 22)
+    label.Position = UDim2.new(0, 0, 0, yPos)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.Font = Enum.Font.Code
+    label.TextSize = 12
+    label.TextColor3 = Color3.fromRGB(180, 180, 200)
+    label.TextXAlignment = Enum.TextXAlignment.Left
     
-    Toggle.MouseButton1Click:Connect(function()
-        Settings[key] = not Settings[key]
-        Toggle.Text = name .. ": " .. (Settings[key] and "ON" or "OFF")
+    local checkbox = Instance.new("TextButton", ToggleContainer)
+    checkbox.Size = UDim2.new(0, 18, 0, 18)
+    checkbox.Position = UDim2.new(1, -25, 0, yPos + 2)
+    checkbox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    checkbox.Text = " "
+    checkbox.Font = Enum.Font.Code
+    checkbox.TextSize = 14
+    checkbox.TextColor3 = Color3.fromRGB(100, 255, 100)
+    Instance.new("UICorner", checkbox).CornerRadius = UDim.new(0, 3)
+    
+    local state = false
+    checkbox.MouseButton1Click:Connect(function()
+        state = not state
+        checkbox.Text = state and "X" or " "
+        checkbox.TextColor3 = state and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(100, 100, 100)
+        callback(state)
     end)
-    y = y + 40
+    
+    return checkbox
 end
 
-AddToggle("Rage Features", "RageEnabled", false)
-AddToggle("Silent Aim", "SilentAim", true)
-AddToggle("No Spread", "NoSpread", true)
-AddToggle("Auto Shoot", "AutoShoot", true)
-AddToggle("Bunny Hop", "Bhop", true)
-AddToggle("Fakelag", "Fakelag", true)
-AddToggle("ESP Enabled", "EspEnabled", true)
-AddToggle("Rainbow Cycle", "Rainbow", true)
-AddToggle("Tracers", "Tracers", true)
-AddToggle("Chams", "Chams", true)
-AddToggle("Boxes", "Box", true)
-AddToggle("Names", "Name", true)
-AddToggle("Health", "Health", true)
-AddToggle("Distance", "Distance", true)
+-- Aimbot toggles
+local aimToggles = {}
+aimToggles.Aimbot = CreateToggle("Aimbot", 10, function(v) Settings.Aimbot = v end)
+aimToggles.Smoothing = CreateToggle("Smoothing Mode", 35, function(v) Settings.Smoothing = v end)
+aimToggles.FOV = CreateToggle("Enable FOV", 60, function(v) Settings.FOVCircle = v end)
+aimToggles.Visible = CreateToggle("Visible Check", 85, function(v) Settings.VisibleCheck = v end)
+aimToggles.Team = CreateToggle("Team Check", 110, function(v) Settings.TeamCheck = v end)
 
--- Silent Aim / Ragebot
-local function GetClosest()
-    local closest, dist = nil, Settings.FOV
-    for _, p in Players:GetPlayers() do
-        if p ~= LP and p.Character and p.Character:FindFirstChild(Settings.HitPart) then
-            local part = p.Character[Settings.HitPart]
-            local screen = Camera:WorldToViewportPoint(part.Position)
-            local mag = (Vector2.new(screen.X, screen.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).Magnitude
-            if mag < dist and (not Settings.TeamCheck or p.Team ~= LP.Team) then
-                closest = part
-                dist = mag
-            end
-        end
-    end
-    return closest
+-- Visuals toggles (hidden initially)
+local visToggles = {}
+visToggles.Chams = CreateToggle("Player Chams", 10, function(v) Settings.PlayerChams = v end)
+visToggles.World = CreateToggle("World Visuals", 35, function(v) Settings.WorldVisuals = v ToggleWorldVisuals(v) end)
+visToggles.Particles = CreateToggle("Particles", 60, function(v) Settings.Particles = v end)
+
+-- Extras toggles
+local extToggles = {}
+extToggles.Speed = CreateToggle("Speed Hack", 10, function(v) Settings.SpeedHack = v end)
+extToggles.ThirdPerson = CreateToggle("Third Person", 35, function(v) Settings.ThirdPerson = v end)
+
+-- Hide sections initially
+for _, t in pairs(visToggles) do t.Parent.Visible = false end
+for _, t in pairs(extToggles) do t.Parent.Visible = false end
+
+-- Section switching
+AimbotBtn.MouseButton1Click:Connect(function()
+    for _, t in pairs(visToggles) do t.Parent.Visible = false end
+    for _, t in pairs(extToggles) do t.Parent.Visible = false end
+    for _, t in pairs(aimToggles) do t.Parent.Visible = true end
+end)
+
+VisualsBtn.MouseButton1Click:Connect(function()
+    for _, t in pairs(aimToggles) do t.Parent.Visible = false end
+    for _, t in pairs(extToggles) do t.Parent.Visible = false end
+    for _, t in pairs(visToggles) do t.Parent.Visible = true end
+end)
+
+ExtrasBtn.MouseButton1Click:Connect(function()
+    for _, t in pairs(aimToggles) do t.Parent.Visible = false end
+    for _, t in pairs(visToggles) do t.Parent.Visible = false end
+    for _, t in pairs(extToggles) do t.Parent.Visible = true end
+end)
+
+-- Initial show Aimbot section
+AimbotBtn:Activate()
+
+-- Drawing FOV circle
+local fovDraw = Drawing.new("Circle")
+fovDraw.Thickness = 2
+fovDraw.NumSides = 100
+fovDraw.Transparency = 0.9
+
+-- Spinning crosshair (optional extra)
+local crossLines = {}
+for i = 1, 4 do
+    local l = Drawing.new("Line")
+    l.Thickness = 2
+    crossLines[i] = l
 end
 
-local mt = getrawmetatable(game)
-local old = mt.__namecall
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-    
-    if Settings.RageEnabled then
-        if method == "FireServer" and self.Name == "Shoot" then
-            if Settings.NoSpread then
-                args[1] = 0 -- spread
-                args[2] = 0
-            end
-            if Settings.SilentAim and GetClosest() then
-                args[3] = GetClosest().Position -- hit position
-            end
-        end
+-- World visuals toggle function
+local function ToggleWorldVisuals(enable)
+    if enable then
+        local bloom = Lighting:FindFirstChild("RainbowBloom") or Instance.new("BloomEffect", Lighting)
+        bloom.Name = "RainbowBloom"
+        bloom.Intensity = 1.5
+        bloom.Size = 32
+        bloom.Threshold = 0.6
+        
+        local sky = Lighting:FindFirstChild("RainbowSky") or Instance.new("Sky", Lighting)
+        sky.Name = "RainbowSky"
+        sky.SkyboxUp = "rbxassetid://159454288"
+        sky.SkyboxDn = "rbxassetid://159454296"
+        sky.SkyboxFt = "rbxassetid://159454293"
+        sky.SkyboxBk = "rbxassetid://159454299"
+        sky.SkyboxLf = "rbxassetid://159454286"
+        sky.SkyboxRt = "rbxassetid://159454300"
+        sky.SunTextureId = ""
+        sky.Enabled = true
+        
+        Lighting.ClockTime = 20
+    else
+        if Lighting:FindFirstChild("RainbowBloom") then Lighting.RainbowBloom.Enabled = false end
+        if Lighting:FindFirstChild("RainbowSky") then Lighting.RainbowSky.Enabled = false end
     end
-    
-    return old(self, unpack(args))
-end)
-setreadonly(mt, true)
-
--- Bhop
-RunService.RenderStepped:Connect(function()
-    if Settings.RageEnabled and Settings.Bhop and LP.Character and LP.Character:FindFirstChild("Humanoid") then
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            LP.Character.Humanoid:ChangeState("Jumping")
-        end
-    end
-end)
-
--- Fakelag (basic packet choke simulation)
-local lag = 0
-RunService.Heartbeat:Connect(function()
-    if Settings.RageEnabled and Settings.Fakelag then
-        lag = lag + 1
-        if lag % Settings.FakelagAmount == 0 then
-            -- simulate by not sending movement (very basic)
-            game:GetService("ReplicatedStorage").Movement:FireServer(LP.Character.HumanoidRootPart.CFrame)
-        end
-    end
-end)
-
--- Rainbow Visuals (your upgraded ESP)
-local EspFolder = Instance.new("Folder", ScreenGui)
-EspFolder.Name = "Esp"
-
-local function GetRainbow()
-    return Color3.fromHSV((tick() * Settings.RainbowSpeed) % 1, 1, 1)
 end
 
-RunService.RenderStepped:Connect(function()
-    if not Settings.EspEnabled then return end
+-- Chams & Particles
+local chamCache = {}
+local function UpdateChamsParticles()
+    if not Settings.PlayerChams then
+        for char, hl in pairs(chamCache) do
+            if hl then hl.Enabled = false end
+        end
+        return
+    end
     
-    for _, p in Players:GetPlayers() do
-        if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local root = p.Character.HumanoidRootPart
-            local color = Settings.Rainbow and GetRainbow() or Color3.fromRGB(255, 50, 50)
+    local color = chamColors[currentChamColor]
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local char = p.Character
+            if Settings.TeamCheck and p.Team == LocalPlayer.Team then continue end
             
-            -- Simple tracer
-            if Settings.Tracers then
-                local screen, onScreen = Camera:WorldToViewportPoint(root.Position)
-                if onScreen then
-                    local line = EspFolder:FindFirstChild(p.Name.."Tracer") or Instance.new("Frame", EspFolder)
-                    line.Name = p.Name.."Tracer"
-                    line.BackgroundColor3 = color
-                    line.Size = UDim2.new(0, 2, 0, (Camera.ViewportSize.Y - screen.Y) * 0.8)
-                    line.Position = UDim2.new(0, screen.X - 1, 0, screen.Y)
-                    line.AnchorPoint = Vector2.new(0.5, 0)
-                    line.Rotation = 90
-                end
-            end
-            
-            -- Chams
-            if Settings.Chams then
-                local hl = p.Character:FindFirstChildOfClass("Highlight") or Instance.new("Highlight", p.Character)
+            if not chamCache[char] then
+                local hl = Instance.new("Highlight", char)
                 hl.FillColor = color
                 hl.OutlineColor = color
                 hl.FillTransparency = 0.4
                 hl.OutlineTransparency = 0
+                chamCache[char] = hl
+            else
+                chamCache[char].FillColor = color
+                chamCache[char].OutlineColor = color
             end
+            chamCache[char].Enabled = true
+            
+            if Settings.Particles then
+                local tex = particleTex[Settings.ParticleMode]
+                for _, part in pairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        local pe = part:FindFirstChild("RainbowParticle") or Instance.new("ParticleEmitter", part)
+                        pe.Name = "RainbowParticle"
+                        pe.Texture = tex
+                        pe.Size = NumberSequence.new(Settings.ParticleSize, 0)
+                        pe.Rate = 100
+                        pe.Lifetime = NumberRange.new(0.8, 1.5)
+                        pe.Speed = NumberRange.new(3, 8)
+                        pe.SpreadAngle = Vector2.new(360, 360)
+                        pe.LightEmission = 1
+                        pe.Color = ColorSequence.new(color)
+                        pe.Enabled = true
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Main loop
+RunService.RenderStepped:Connect(function()
+    local rainbow = Color3.fromHSV(tick() * 0.5 % 1, 1, 1)
+    
+    -- FOV circle
+    fovDraw.Visible = Settings.FOVCircle and Settings.Aimbot
+    fovDraw.Radius = Settings.AimbotFOV
+    fovDraw.Color = rainbow
+    fovDraw.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    
+    -- Spinning crosshair
+    if Settings.Aimbot then
+        local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        local angle = tick() * 5
+        for i = 1, 4 do
+            local a = angle + math.rad((i-1)*90)
+            crossLines[i].From = center + Vector2.new(math.cos(a)*10, math.sin(a)*10)
+            crossLines[i].To = center + Vector2.new(math.cos(a)*25, math.sin(a)*25)
+            crossLines[i].Color = rainbow
+            crossLines[i].Visible = true
+        end
+    else
+        for _, l in pairs(crossLines) do l.Visible = false end
+    end
+    
+    -- Third person
+    if Settings.ThirdPerson then
+        LocalPlayer.CameraMaxZoomDistance = 15
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+    else
+        LocalPlayer.CameraMaxZoomDistance = 0.5
+        LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+    end
+    
+    -- Speed
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = Settings.SpeedHack and Settings.SpeedValue or 16
+    end
+    
+    -- Chams / particles
+    UpdateChamsParticles()
+    
+    -- Aimlock (smooth)
+    if Settings.Aimbot and UserInputService:IsKeyDown(Settings.AimKey) then
+        local target = nil
+        local closest = Settings.AimbotFOV
+        local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        
+        for _, p in Players:GetPlayers() do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                local head = p.Character.Head
+                local pos, vis = Camera:WorldToViewportPoint(head.Position)
+                if vis or not Settings.VisibleCheck then
+                    local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if dist < closest and (not Settings.TeamCheck or p.Team ~= LocalPlayer.Team) then
+                        closest = dist
+                        target = head
+                    end
+                end
+            end
+        end
+        
+        if target then
+            local targetCF = CFrame.new(Camera.CFrame.Position, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCF, Settings.Smoothing and Settings.SmoothFactor or 1)
         end
     end
 end)
 
--- Menu toggle
-UserInputService.InputBegan:Connect(function(i)
-    if i.KeyCode == Enum.KeyCode.Z then
-        Main.Visible = not Main.Visible
-    elseif i.KeyCode == Enum.KeyCode.X then
-        Settings.RageEnabled = not Settings.RageEnabled
-        print("Rage " .. (Settings.RageEnabled and "ENABLED" or "DISABLED"))
+-- Z toggle menu
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Z then
+        MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
-print("ULTIMATE CB RAGE Loaded - Z = Menu | X = Toggle Rage")
+print("External Rainbow Elite Menu Loaded - Z to toggle")
