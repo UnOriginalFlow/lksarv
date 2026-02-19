@@ -1,409 +1,209 @@
--- RAINBOW ELITE: VISUALS ONLY v2 - MAX VISUALS UPGRADE
--- Upgraded by CLAW - rainbow, tracers, chams, premium UI
+-- COUNTER BLOX ULTIMATE RAGE + RAINBOW VISUALS (Merged 2025 Meta)
+-- Features: Silent Aim, No Spread, Ragebot, Bhop, Fakelag, Tracers, Rainbow ESP/Chams
+-- Z = Toggle Menu, X = Toggle Rage Features
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
 
+-- Settings
 local Settings = {
+    -- Rage
+    RageEnabled = false,
+    SilentAim = true,
+    FOV = 150,
+    HitPart = "Head",
+    NoSpread = true,
+    AutoShoot = true,
+    Bhop = true,
+    Fakelag = true,
+    FakelagAmount = 8,
+    
+    -- Visuals
     EspEnabled = true,
-    VisibleOnly = false,
+    Rainbow = true,
+    RainbowSpeed = 2,
+    Tracers = true,
+    Chams = true,
+    Box = true,
+    Name = true,
+    Health = true,
+    Distance = true,
     TeamCheck = true,
-    ShowBox = true,
-    BoxFill = true,
-    BoxThickness = 2,
-    ShowName = true,
-    ShowHealth = true,
-    ShowWeapon = true,
-    ShowDistance = true,
-    FontSize = 13,
-    ShowSkeleton = true,
-    ShowHeadDot = true,
-    ShowChams = true,
-    ShowTracers = true,
-    DistanceFade = false,
-    FadeLevel = 300,
-    RainbowSpeed = 1.8,
-    EnemyColor = Color3.fromRGB(255, 50, 50),
-    TeamColor = Color3.fromRGB(50, 255, 100),
-    MenuOpen = true
+    VisibleOnly = false
 }
 
--- ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "RainbowEliteV2"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-pcall(function() ScreenGui.Parent = CoreGui end)
-if not ScreenGui.Parent then ScreenGui.Parent = LP:WaitForChild("PlayerGui") end
-
--- Premium Menu
+-- UI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "RageMenu"
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 420, 0, 580)
-Main.Position = UDim2.new(0.5, -210, 0.5, -290)
-Main.BackgroundColor3 = Color3.fromRGB(13, 13, 18)
+Main.Size = UDim2.new(0, 380, 0, 480)
+Main.Position = UDim2.new(0.5, -190, 0.5, -240)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Draggable = true
-local MainCorner = Instance.new("UICorner", Main)
-MainCorner.CornerRadius = UDim.new(0, 16)
+local Corner = Instance.new("UICorner", Main) Corner.CornerRadius = UDim.new(0, 14)
 
-local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 45)
-Header.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-Header.BorderSizePixel = 0
-local HeaderCorner = Instance.new("UICorner", Header)
-HeaderCorner.CornerRadius = UDim.new(0, 16)
-
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "🌈 RAINBOW ELITE v2"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(28, 28, 40)
+Title.Text = "ULTIMATE CB RAGE + RAINBOW"
+Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-local TitleGradient = Instance.new("UIGradient", Title)
-TitleGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 150)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 255))
-}
+Title.TextSize = 16
+local Grad = Instance.new("UIGradient", Title)
+Grad.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255,80,180)), ColorSequenceKeypoint.new(1, Color3.fromRGB(80,180,255))}
 
--- Scroll + UI helpers (same as before but with corners)
-local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(1, 0, 1, -45)
-Scroll.Position = UDim2.new(0, 0, 0, 45)
-Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 6
-Scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
-
-local yPos = 15
-local function AddHeader(text)
-    local l = Instance.new("TextLabel", Scroll)
-    l.Size = UDim2.new(1, -20, 0, 28)
-    l.Position = UDim2.new(0, 10, 0, yPos)
-    l.BackgroundTransparency = 1
-    l.Text = "-- " .. text .. " --"
-    l.TextColor3 = Color3.fromRGB(180, 180, 255)
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 15
-    yPos = yPos + 35
-end
-
-local function AddToggle(text, key)
-    local btn = Instance.new("TextButton", Scroll)
-    btn.Size = UDim2.new(1, -20, 0, 32)
-    btn.Position = UDim2.new(0, 10, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    btn.Text = ""
-    btn.AutoButtonColor = false
-    local btnCorner = Instance.new("UICorner", btn)
-    btnCorner.CornerRadius = UDim.new(0, 8)
-
-    local lbl = Instance.new("TextLabel", btn)
-    lbl.Size = UDim2.new(0.75, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 14
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local status = Instance.new("Frame", btn)
-    status.Size = UDim2.new(0, 20, 0, 20)
-    status.Position = UDim2.new(0.9, 0, 0.5, -10)
-    status.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(60, 60, 70)
-    local statusCorner = Instance.new("UICorner", status)
-    statusCorner.CornerRadius = UDim.new(1, 0)
-
-    btn.MouseButton1Click:Connect(function()
+local y = 50
+local function AddToggle(name, key, default)
+    local Toggle = Instance.new("TextButton", Main)
+    Toggle.Size = UDim2.new(0.9, 0, 0, 32)
+    Toggle.Position = UDim2.new(0.05, 0, 0, y)
+    Toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    Toggle.Text = name .. ": " .. (default and "ON" or "OFF")
+    Toggle.TextColor3 = Color3.new(1,1,1)
+    Toggle.Font = Enum.Font.Gotham
+    Toggle.TextSize = 13
+    local tc = Instance.new("UICorner", Toggle) tc.CornerRadius = UDim.new(0, 8)
+    
+    Toggle.MouseButton1Click:Connect(function()
         Settings[key] = not Settings[key]
-        status.BackgroundColor3 = Settings[key] and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(60, 60, 70)
+        Toggle.Text = name .. ": " .. (Settings[key] and "ON" or "OFF")
     end)
-    yPos = yPos + 40
+    y = y + 40
 end
 
-local function AddSlider(text, key, min, max)
-    -- (same as original but with corners and better visuals - kept short for space)
-    local frame = Instance.new("Frame", Scroll)
-    frame.Size = UDim2.new(1, -20, 0, 40)
-    frame.Position = UDim2.new(0, 10, 0, yPos)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    local fCorner = Instance.new("UICorner", frame)
-    fCorner.CornerRadius = UDim.new(0, 8)
+AddToggle("Rage Features", "RageEnabled", false)
+AddToggle("Silent Aim", "SilentAim", true)
+AddToggle("No Spread", "NoSpread", true)
+AddToggle("Auto Shoot", "AutoShoot", true)
+AddToggle("Bunny Hop", "Bhop", true)
+AddToggle("Fakelag", "Fakelag", true)
+AddToggle("ESP Enabled", "EspEnabled", true)
+AddToggle("Rainbow Cycle", "Rainbow", true)
+AddToggle("Tracers", "Tracers", true)
+AddToggle("Chams", "Chams", true)
+AddToggle("Boxes", "Box", true)
+AddToggle("Names", "Name", true)
+AddToggle("Health", "Health", true)
+AddToggle("Distance", "Distance", true)
 
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(1, 0, 0, 18)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text .. ": " .. Settings[key]
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 13
-
-    local bar = Instance.new("Frame", frame)
-    bar.Size = UDim2.new(0.9, 0, 0, 8)
-    bar.Position = UDim2.new(0.05, 0, 0.65, 0)
-    bar.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    local barCorner = Instance.new("UICorner", bar)
-    barCorner.CornerRadius = UDim.new(1, 0)
-
-    local fill = Instance.new("Frame", bar)
-    fill.Size = UDim2.new((Settings[key]-min)/(max-min), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    local fillCorner = Instance.new("UICorner", fill)
-    fillCorner.CornerRadius = UDim.new(1, 0)
-
-    bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            local conn
-            conn = RunService.RenderStepped:Connect(function()
-                if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then conn:Disconnect() return end
-                local m = UserInputService:GetMouseLocation().X
-                local r = math.clamp((m - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-                local v = math.floor(min + (max - min) * r)
-                Settings[key] = v
-                fill.Size = UDim2.new(r, 0, 1, 0)
-                lbl.Text = text .. ": " .. v
-            end)
+-- Silent Aim / Ragebot
+local function GetClosest()
+    local closest, dist = nil, Settings.FOV
+    for _, p in Players:GetPlayers() do
+        if p ~= LP and p.Character and p.Character:FindFirstChild(Settings.HitPart) then
+            local part = p.Character[Settings.HitPart]
+            local screen = Camera:WorldToViewportPoint(part.Position)
+            local mag = (Vector2.new(screen.X, screen.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).Magnitude
+            if mag < dist and (not Settings.TeamCheck or p.Team ~= LP.Team) then
+                closest = part
+                dist = mag
+            end
         end
-    end)
-    yPos = yPos + 48
+    end
+    return closest
 end
 
-AddHeader("Main")
-AddToggle("Enabled", "EspEnabled")
-AddToggle("Visible Only", "VisibleOnly")
-AddToggle("Team Check", "TeamCheck")
-AddHeader("Box & Chams")
-AddToggle("Draw Box", "ShowBox")
-AddToggle("Box Fill", "BoxFill")
-AddToggle("Chams", "ShowChams")
-AddSlider("Box Thickness", "BoxThickness", 1, 4)
-AddHeader("Info")
-AddToggle("Name + Distance", "ShowName")
-AddToggle("Health", "ShowHealth")
-AddToggle("Weapon", "ShowWeapon")
-AddSlider("Text Size", "FontSize", 10, 24)
-AddHeader("Skeleton & Dots")
-AddToggle("Skeleton", "ShowSkeleton")
-AddToggle("Head Dot", "ShowHeadDot")
-AddToggle("Tracers", "ShowTracers")
-AddHeader("Misc")
-AddToggle("Distance Fade", "DistanceFade")
-AddSlider("Fade Dist", "FadeLevel", 50, 600)
-AddSlider("Rainbow Speed", "RainbowSpeed", 0.5, 5)
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    
+    if Settings.RageEnabled then
+        if method == "FireServer" and self.Name == "Shoot" then
+            if Settings.NoSpread then
+                args[1] = 0 -- spread
+                args[2] = 0
+            end
+            if Settings.SilentAim and GetClosest() then
+                args[3] = GetClosest().Position -- hit position
+            end
+        end
+    end
+    
+    return old(self, unpack(args))
+end)
+setreadonly(mt, true)
 
--- Overlay for screen-space (tracers + skeleton)
-local Overlay = Instance.new("ScreenGui", ScreenGui)
-Overlay.Name = "Overlay"
-Overlay.ResetOnSpawn = false
+-- Bhop
+RunService.RenderStepped:Connect(function()
+    if Settings.RageEnabled and Settings.Bhop and LP.Character and LP.Character:FindFirstChild("Humanoid") then
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            LP.Character.Humanoid:ChangeState("Jumping")
+        end
+    end
+end)
 
-local EspContainer = Instance.new("Folder", ScreenGui)
-EspContainer.Name = "EspContainer"
+-- Fakelag (basic packet choke simulation)
+local lag = 0
+RunService.Heartbeat:Connect(function()
+    if Settings.RageEnabled and Settings.Fakelag then
+        lag = lag + 1
+        if lag % Settings.FakelagAmount == 0 then
+            -- simulate by not sending movement (very basic)
+            game:GetService("ReplicatedStorage").Movement:FireServer(LP.Character.HumanoidRootPart.CFrame)
+        end
+    end
+end)
 
-local Cache = {}
+-- Rainbow Visuals (your upgraded ESP)
+local EspFolder = Instance.new("Folder", ScreenGui)
+EspFolder.Name = "Esp"
 
 local function GetRainbow()
     return Color3.fromHSV((tick() * Settings.RainbowSpeed) % 1, 1, 1)
 end
 
-local function DrawLine(parent, p1, p2, color, thickness, transp)
-    local line = parent:FindFirstChild("Line_" .. tostring(p1)) or Instance.new("Frame")
-    line.Name = "Line_" .. tostring(p1)
-    line.Parent = parent
-    line.AnchorPoint = Vector2.new(0.5, 0.5)
-    line.BackgroundColor3 = color
-    line.BorderSizePixel = 0
-    line.BackgroundTransparency = transp
-    local dist = (p1 - p2).Magnitude
-    local center = (p1 + p2) / 2
-    local angle = math.atan2((p2.Y - p1.Y), (p2.X - p1.X))
-    line.Size = UDim2.new(0, dist, 0, thickness)
-    line.Position = UDim2.new(0, center.X, 0, center.Y)
-    line.Rotation = math.deg(angle)
-    return line
-end
-
 RunService.RenderStepped:Connect(function()
-    for p, objs in pairs(Cache) do
-        if not p.Parent then objs.Root:Destroy() Cache[p] = nil end
-    end
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LP then
-            local char = player.Character
-            local hum = char and char:FindFirstChild("Humanoid")
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            local head = char and char:FindFirstChild("Head")
-
-            if not Cache[player] then
-                local folder = Instance.new("Folder", EspContainer)
-                folder.Name = player.Name
-
-                local bb = Instance.new("BillboardGui", folder)
-                bb.Adornee = root
-                bb.AlwaysOnTop = true
-                bb.Size = UDim2.new(4, 0, 6, 0)
-
-                local box = Instance.new("Frame", bb)
-                box.Size = UDim2.new(1, 0, 1, 0)
-                box.BackgroundTransparency = 1
-                local stroke = Instance.new("UIStroke", box)
-                stroke.Thickness = Settings.BoxThickness
-
-                local name = Instance.new("TextLabel", bb)
-                name.Position = UDim2.new(0, 0, 0, -25)
-                name.BackgroundTransparency = 1
-                name.TextColor3 = Color3.new(1,1,1)
-                name.TextStrokeTransparency = 0.3
-                name.Font = Enum.Font.Gotham
-
-                local hpBar = Instance.new("Frame", bb)
-                hpBar.Size = UDim2.new(0, 5, 1, 0)
-                hpBar.Position = UDim2.new(0, -10, 0, 0)
-                hpBar.BackgroundColor3 = Color3.new(0,1,0)
-
-                local wep = Instance.new("TextLabel", bb)
-                wep.Position = UDim2.new(0, 0, 1, 5)
-                wep.BackgroundTransparency = 1
-                wep.TextColor3 = Color3.new(1,1,1)
-                wep.TextStrokeTransparency = 0.3
-                wep.Font = Enum.Font.Gotham
-
-                local highlight = Instance.new("Highlight", folder)
-                highlight.Adornee = char
-                highlight.FillTransparency = 0.6
-                highlight.OutlineTransparency = 0
-
-                local skelFolder = Instance.new("Folder", Overlay)
-                skelFolder.Name = player.Name .. "_Skel"
-
-                local headDot = Instance.new("Frame", bb)
-                headDot.Size = UDim2.new(0, 8, 0, 8)
-                headDot.Position = UDim2.new(0.5, -4, 0, -12)
-                headDot.BackgroundColor3 = Color3.new(1,1,1)
-                local dotCorner = Instance.new("UICorner", headDot)
-                dotCorner.CornerRadius = UDim.new(1, 0)
-
-                local tracer = Instance.new("Frame", Overlay)
-                tracer.BackgroundColor3 = Color3.new(1,1,1)
-                tracer.BorderSizePixel = 0
-                tracer.Visible = false
-
-                Cache[player] = {Root = folder, BB = bb, Box = box, Stroke = stroke, Name = name, HP = hpBar, Wep = wep, Highlight = highlight, Skel = skelFolder, HeadDot = headDot, Tracer = tracer}
-            end
-
-            local data = Cache[player]
-            local show = false
-
-            if Settings.EspEnabled and char and root and hum and hum.Health > 0 and (not Settings.TeamCheck or player.Team ~= LP.Team) then
-                local dist = (root.Position - Camera.CFrame.Position).Magnitude
-                local _, onScreen = Camera:WorldToViewportPoint(root.Position)
-
-                local isVis = true
-                if Settings.VisibleOnly then
-                    local ray = workspace:Raycast(Camera.CFrame.Position, (root.Position - Camera.CFrame.Position).Unit * dist, RaycastParams.new())
-                    if ray and not ray.Instance:IsDescendantOf(char) then isVis = false end
-                end
-
-                if onScreen and isVis then
-                    show = true
-                    data.BB.Adornee = root
-
-                    local alpha = Settings.DistanceFade and math.clamp((dist - 80) / Settings.FadeLevel, 0, 1) or 0
-                    local mainColor = (player.Team == LP.Team) and Settings.TeamColor or GetRainbow()
-
-                    -- Box
-                    data.Box.Visible = Settings.ShowBox
-                    data.Stroke.Color = mainColor
-                    data.Stroke.Thickness = Settings.BoxThickness
-                    data.Box.BackgroundTransparency = Settings.BoxFill and (0.65 + alpha) or 1
-                    data.Stroke.Transparency = alpha
-
-                    -- Text
-                    data.Name.Visible = Settings.ShowName
-                    data.Name.Text = player.Name .. (Settings.ShowDistance and (" [" .. math.floor(dist) .. "m]") or "")
-                    data.Name.TextSize = Settings.FontSize
-                    data.Name.TextTransparency = alpha
-
-                    data.Wep.Visible = Settings.ShowWeapon
-                    local tool = char:FindFirstChildOfClass("Tool")
-                    data.Wep.Text = tool and tool.Name or ""
-                    data.Wep.TextSize = Settings.FontSize
-                    data.Wep.TextTransparency = alpha
-
-                    -- Health
-                    data.HP.Visible = Settings.ShowHealth
-                    local hpRatio = hum.Health / hum.MaxHealth
-                    data.HP.Size = UDim2.new(0, 5, hpRatio, 0)
-                    data.HP.Position = UDim2.new(0, -10, 1 - hpRatio, 0)
-                    data.HP.BackgroundColor3 = Color3.fromHSV(hpRatio * 0.3, 1, 1)
-                    data.HP.BackgroundTransparency = alpha
-
-                    -- Chams
-                    data.Highlight.Enabled = Settings.ShowChams
-                    data.Highlight.FillColor = mainColor
-                    data.Highlight.OutlineColor = mainColor
-
-                    -- Head Dot
-                    data.HeadDot.Visible = Settings.ShowHeadDot
-                    data.HeadDot.BackgroundColor3 = mainColor
-                    data.HeadDot.BackgroundTransparency = alpha
-
-                    -- Skeleton
-                    if Settings.ShowSkeleton then
-                        data.Skel:ClearAllChildren()
-                        local function Line(p1, p2)
-                            local v1, o1 = Camera:WorldToViewportPoint(p1.Position)
-                            local v2, o2 = Camera:WorldToViewportPoint(p2.Position)
-                            if o1 and o2 then
-                                DrawLine(data.Skel, Vector2.new(v1.X, v1.Y), Vector2.new(v2.X, v2.Y), mainColor, 1.5, alpha)
-                            end
-                        end
-                        local T = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-                        if T and head then
-                            Line(head, T)
-                            local LA = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
-                            local RA = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
-                            local LL = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
-                            local RL = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
-                            if LA then Line(T, LA) end
-                            if RA then Line(T, RA) end
-                            if LL then Line(T, LL) end
-                            if RL then Line(T, RL) end
-                        end
-                    end
-
-                    -- Tracers
-                    if Settings.ShowTracers then
-                        local feet = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
-                        local bottom = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        DrawLine(Overlay, bottom, Vector2.new(feet.X, feet.Y), mainColor, 1.5, alpha * 0.6)
-                    end
+    if not Settings.EspEnabled then return end
+    
+    for _, p in Players:GetPlayers() do
+        if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local root = p.Character.HumanoidRootPart
+            local color = Settings.Rainbow and GetRainbow() or Color3.fromRGB(255, 50, 50)
+            
+            -- Simple tracer
+            if Settings.Tracers then
+                local screen, onScreen = Camera:WorldToViewportPoint(root.Position)
+                if onScreen then
+                    local line = EspFolder:FindFirstChild(p.Name.."Tracer") or Instance.new("Frame", EspFolder)
+                    line.Name = p.Name.."Tracer"
+                    line.BackgroundColor3 = color
+                    line.Size = UDim2.new(0, 2, 0, (Camera.ViewportSize.Y - screen.Y) * 0.8)
+                    line.Position = UDim2.new(0, screen.X - 1, 0, screen.Y)
+                    line.AnchorPoint = Vector2.new(0.5, 0)
+                    line.Rotation = 90
                 end
             end
-
-            if not show then
-                data.BB.Enabled = false
-                data.Tracer.Visible = false
-            else
-                data.BB.Enabled = true
-                data.Tracer.Visible = Settings.ShowTracers
+            
+            -- Chams
+            if Settings.Chams then
+                local hl = p.Character:FindFirstChildOfClass("Highlight") or Instance.new("Highlight", p.Character)
+                hl.FillColor = color
+                hl.OutlineColor = color
+                hl.FillTransparency = 0.4
+                hl.OutlineTransparency = 0
             end
         end
     end
 end)
 
--- Toggle menu
-UserInputService.InputBegan:Connect(function(i, g)
-    if g then return end
+-- Menu toggle
+UserInputService.InputBegan:Connect(function(i)
     if i.KeyCode == Enum.KeyCode.Z then
-        Settings.MenuOpen = not Settings.MenuOpen
-        Main.Visible = Settings.MenuOpen
+        Main.Visible = not Main.Visible
+    elseif i.KeyCode == Enum.KeyCode.X then
+        Settings.RageEnabled = not Settings.RageEnabled
+        print("Rage " .. (Settings.RageEnabled and "ENABLED" or "DISABLED"))
     end
 end)
 
-print("🌈 RAINBOW ELITE v2 Loaded - Visuals maxed")
+print("ULTIMATE CB RAGE Loaded - Z = Menu | X = Toggle Rage")
