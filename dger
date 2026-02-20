@@ -1,149 +1,98 @@
--- RAINBOW ELITE FUSION - Bob Edition FIXED (TriggerBot + FOV Changer)
--- TriggerBot auto-shoots anyone in FOV | FOV live changeable
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
 local Camera = workspace.CurrentCamera
-local LP = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 
-local Settings = {
-    aimbotEnabled = false,
-    triggerBot = false,
-    visibleOnly = true,
-    teamCheck = true,
-    aimbotFOV = 150,
-    aimbotSmoothness = 0.2,
-    targetParts = {Head = true, Torso = false},
-    espEnabled = false,
-    boxEnabled = true,
-    nameEnabled = true,
-    healthEnabled = true,
-    chamsEnabled = false,
-    worldVisuals = false,
-    killAll = false,
-    oneShot = false,
-    bhop = false,
-    thirdPerson = false,
-    activeTab = "Aimbot"
-}
+local Boxes = {}
+local Connections = {} -- Stores event connections to prevent memory leaks
 
--- (Keep your full SkinData and SkinsList here - I shortened for space)
-
--- UI (your full sidebar + content system - keep as is)
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 550, 0, 400)
-Main.Position = UDim2.new(0.5, -275, 0.5, -200)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.Active = true
-Main.Draggable = true
--- Header, Sidebar, Content... (keep your exact UI code from here down to UpdateUI function)
-
--- Add this inside UpdateUI for Aimbot tab
-if Settings.activeTab == "Aimbot" then
-    Header("Main")
-    Toggle("Enabled", "aimbotEnabled")
-    Toggle("TriggerBot (Auto Shoot)", "triggerBot")
-    Toggle("Visible Only", "visibleOnly")
-    Toggle("Team Check", "teamCheck")
-    Header("FOV")
-    local fovFrame = Instance.new("Frame", Scroll)
-    fovFrame.Size = UDim2.new(1, -40, 0, 30)
-    fovFrame.Position = UDim2.new(0, 20, 0, y)
-    fovFrame.BackgroundTransparency = 1
-    local fovLbl = Instance.new("TextLabel", fovFrame)
-    fovLbl.Size = UDim2.new(0.5, 0, 1, 0)
-    fovLbl.Text = "FOV: " .. Settings.aimbotFOV
-    fovLbl.TextColor3 = Color3.new(0.9,0.9,0.9)
-    fovLbl.Font = Enum.Font.Code
-    fovLbl.TextSize = 12
-    fovLbl.BackgroundTransparency = 1
-    local fovBox = Instance.new("TextBox", fovFrame)
-    fovBox.Size = UDim2.new(0.4, 0, 1, 0)
-    fovBox.Position = UDim2.new(0.55, 0, 0, 0)
-    fovBox.Text = tostring(Settings.aimbotFOV)
-    fovBox.Font = Enum.Font.Code
-    fovBox.TextSize = 12
-    fovBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    Instance.new("UICorner", fovBox).CornerRadius = UDim.new(0,4)
-    fovBox.FocusLost:Connect(function()
-        local num = tonumber(fovBox.Text)
-        if num then
-            Settings.aimbotFOV = math.clamp(num, 50, 500)
-            fovLbl.Text = "FOV: " .. Settings.aimbotFOV
-        end
-    end)
-    y = y + 35
+local function IsEnemy(plr)
+    if plr == LocalPlayer then return false end
+    local myChar = LocalPlayer.Character
+    local theirChar = plr.Character
+    if not myChar or not theirChar then return false end
+    
+    -- Checks if players are parented to different folders (common for teams)
+    return myChar.Parent.Name ~= theirChar.Parent.Name
 end
 
--- Rainbow FOV Circle
-local fovCircle = Drawing.new("Circle")
-fovCircle.Thickness = 2
-fovCircle.NumSides = 100
-fovCircle.Transparency = 0.8
+local function CreateBox(plr)
+    if Boxes[plr] then return end
+    local box = Drawing.new("Square")
+    box.Thickness = 1.6
+    box.Filled = false
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Transparency = 1
+    box.Visible = false
+    Boxes[plr] = box
+end
 
--- RaycastParams fix
-local rayParams = RaycastParams.new()
-rayParams.FilterType = Enum.RaycastFilterType.Exclude
-rayParams.FilterDescendantsInstances = {LP.Character or {}}
-
--- Fixed Aimbot + TriggerBot in RenderStepped
-RunService.RenderStepped:Connect(function()
-    fovCircle.Visible = Settings.aimbotEnabled
-    fovCircle.Radius = Settings.aimbotFOV
-    fovCircle.Color = Color3.fromHSV(tick()*0.5%1,1,1)
-    fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-
-    -- TriggerBot + Silent Aim
-    if Settings.aimbotEnabled then
-        local mousePos = UserInputService:GetMouseLocation()
-        local target = nil
-        local closest = Settings.aimbotFOV + 1
-
-        for _, p in Players:GetPlayers() do
-            if p ~= LP and p.Character and p.Character:FindFirstChild("Head") then
-                if not Settings.teamCheck or p.Team ~= LP.Team then
-                    local head = p.Character.Head
-                    local screen, onScreen = Camera:WorldToViewportPoint(head.Position)
-                    if onScreen then
-                        local dist = (Vector2.new(screen.X, screen.Y) - mousePos).Magnitude
-                        if dist < closest then
-                            local canSee = true
-                            if Settings.visibleOnly then
-                                local result = workspace:Raycast(Camera.CFrame.Position, head.Position - Camera.CFrame.Position, rayParams)
-                                if result and not result.Instance:IsDescendantOf(p.Character) then canSee = false end
-                            end
-                            if canSee then
-                                closest = dist
-                                target = head
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        if target then
-            -- Silent aim (camera lerp optional)
-            if Settings.aimbotSmoothness > 0 then
-                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Position), Settings.aimbotSmoothness)
-            end
-
-            -- TriggerBot auto shoot
-            if Settings.triggerBot then
-                local gun = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-                if gun then
-                    gun:Activate()
-                end
-            end
-        end
+local function RemoveBox(plr)
+    if Boxes[plr] then
+        Boxes[plr]:Remove()
+        Boxes[plr] = nil
     end
+end
 
-    -- Rest of your ESP, chams, bhop, skins, rage, pink hands, world visuals, etc. (keep everything else from your original script)
-end)
+-- Initialize boxes for existing players
+for _, plr in Players:GetPlayers() do
+    if plr ~= LocalPlayer then
+        CreateBox(plr)
+    end
+end
 
-UpdateUI()
-print("🌈 Rainbow Elite FUSION FIXED - TriggerBot + Live FOV")
+-- Track connections so we can safely disconnect them later
+table.insert(Connections, Players.PlayerAdded:Connect(CreateBox))
+table.insert(Connections, Players.PlayerRemoving:Connect(RemoveBox))
+
+table.insert(Connections, RunService.RenderStepped:Connect(function()
+    for plr, box in pairs(Boxes) do
+        local char = plr.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Head") then
+            box.Visible = false
+            continue
+        end
+
+        if not IsEnemy(plr) then
+            box.Visible = false
+            continue
+        end
+
+        local hrp = char.HumanoidRootPart
+        local head = char.Head
+
+        -- WorldToViewportPoint returns the position and an on-screen boolean
+        local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+        local rootPos, rootOnScreen = Camera:WorldToViewportPoint(hrp.Position)
+        local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.5, 0))
+
+        -- Use the built-in boolean rather than relying on the Z depth calculation
+        if not rootOnScreen then
+            box.Visible = false
+            continue
+        end
+
+        local height = math.abs(headPos.Y - legPos.Y)
+        local width = height * 0.55
+
+        box.Size = Vector2.new(width, height)
+        
+        -- Use headPos.Y for the top of the box to prevent vertical offset errors
+        box.Position = Vector2.new(rootPos.X - width/2, headPos.Y)
+        box.Visible = true
+    end
+end))
+
+print("Bloxstrike ESP loaded ⚡")
+
+-- Return a cleanup function so the user can easily unload the script later
+-- Example usage: local unloadEsp = loadstring(...)(); unloadEsp();
+return function()
+    for _, conn in ipairs(Connections) do
+        conn:Disconnect()
+    end
+    for plr, _ in pairs(Boxes) do
+        RemoveBox(plr)
+    end
+    print("Bloxstrike ESP unloaded.")
+end
