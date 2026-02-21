@@ -1,170 +1,289 @@
--- Dreamyware v1.0 - Counter Blox Hub ⚡ Purple Retro Edition
--- Fixed and Optimized Version
+-- Dreamyware v2.0 - Counter Blox Blue/Black UI (Screenshot Match)
+-- https://raw.githubusercontent.com/UnOriginalFlow/lksarv/main/dger
+loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({
-    Name = "Dreamyware", 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "DreamywareCBX", 
-    IntroEnabled = true, 
-    IntroText = "D r e a m y w a r e", 
-    IntroIcon = "rbxassetid://4483345998"
-})
+local Window = OrionLib:MakeWindow({Name = "External Menu Example", HidePremium = false, SaveConfig = true, ConfigFolder = "Dreamyware", IntroEnabled = false})
 
--- Global Variables for Logic
-getgenv().AimbotEnabled = false
-getgenv().AimFOV = 100
-getgenv().SilentAim = false
-getgenv().AimPart = "Head"
-getgenv().ESPEnabled = false
-getgenv().Tracers = false
-getgenv().ESPColor = Color3.fromRGB(139, 0, 255)
-getgenv().WalkSpeedValue = 16
-getgenv().NoRecoil = false
+OrionLib:MakeNotification({Name = "Dreamyware Loaded", Content = "Blue domination ⚡", Time = 3})
+
+local AimbotTab = Window:MakeTab({Name = "Aimbot", Icon = "rbxassetid://4483362458"})
+local VisualsTab = Window:MakeTab({Name = "Visuals", Icon = "rbxassetid://4483360976"})
+local ExtrasTab = Window:MakeTab({Name = "Extras", Icon = "rbxassetid://4483361427"})
+
+-- Blue/Black Theme Force
+spawn(function()
+    wait(0.5)
+    for _, obj in game.CoreGui:GetDescendants() do
+        if obj:IsA("Frame") then
+            obj.BackgroundColor3 = Color3.fromRGB(15,15,15)
+            obj.BorderColor3 = Color3.fromRGB(0,162,255)
+        elseif obj:IsA("TextLabel") or obj:IsA("TextButton") then
+            obj.Font = Enum.Font.Gotham
+            obj.TextColor3 = Color3.fromRGB(255,255,255)
+            obj.TextStrokeColor3 = Color3.fromRGB(0,162,255)
+        end
+    end
+end)
 
 -- Services
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local Camera = game:GetService("Workspace").CurrentCamera
+local RS = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
 
--- FOV Circle Drawing
+-- Aimbot Vars
+getgenv().AimbotEnabled = false
+getgenv().SmoothEnabled = false
+getgenv().TeamCheck = false
+getgenv().AimFOV = 120
+getgenv().AimPart = "Head"
+
+-- ESP Vars
+getgenv().ESPEnabled = false
+getgenv().BoxEnabled = false
+getgenv().NameEnabled = false
+getgenv().WeaponEnabled = false
+getgenv().SkeletonEnabled = false
+getgenv().HeadDotEnabled = false
+getgenv().ChamsEnabled = false
+getgenv().FOVVisible = false
+
+-- Rainbow Gun Vars
+getgenv().RainbowGun = false
+
+-- Drawings
 local FOVCircle = Drawing.new("Circle")
+FOVCircle.NumSides = 100
 FOVCircle.Thickness = 2
-FOVCircle.NumSides = 460
+FOVCircle.Radius = getgenv().AimFOV
 FOVCircle.Filled = false
-FOVCircle.Transparency = 0.7
-FOVCircle.Color = getgenv().ESPColor
+FOVCircle.Color = Color3.fromRGB(0,162,255)
 FOVCircle.Visible = false
 
--- Functions
-local function GetClosestPlayer()
-    local ClosestChild = nil
-    local MaxDistance = getgenv().AimFOV
+local ESPBoxes = {}
+local ESPNames = {}
+local ESPWeapons = {}
+local ESPSkeletons = {}
+local ESPHeadDots = {}
 
-    for i, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team and v.Character and v.Character:FindFirstChild(getgenv().AimPart) and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-            local ScreenPoint = Camera:WorldToScreenPoint(v.Character[getgenv().AimPart].Position)
-            local VectorDistance = (Vector2.new(ScreenPoint.X, ScreenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-            
-            if VectorDistance < MaxDistance then
-                MaxDistance = VectorDistance
-                ClosestChild = v
+-- Aimbot Tab
+AimbotTab:AddToggle({Name = "Aimbot", Default = false, Callback = function(v) getgenv().AimbotEnabled = v end})
+AimbotTab:AddToggle({Name = "Smoothing Mode", Default = false, Callback = function(v) getgenv().SmoothEnabled = v end})
+AimbotTab:AddToggle({Name = "Enable FOV", Default = false, Callback = function(v) getgenv().FOVVisible = v; FOVCircle.Visible = v and getgenv().AimbotEnabled end})
+AimbotTab:AddSlider({Name = "FOV Size", Min = 50, Max = 500, Default = 120, Callback = function(v) getgenv().AimFOV = v; FOVCircle.Radius = v end})
+AimbotTab:AddToggle({Name = "Team Check", Default = false, Callback = function(v) getgenv().TeamCheck = v end})
+
+-- Visuals Tab
+VisualsTab:AddToggle({Name = "Box ESP", Default = false, Callback = function(v) getgenv().BoxEnabled = v end})
+VisualsTab:AddToggle({Name = "Name ESP", Default = false, Callback = function(v) getgenv().NameEnabled = v end})
+VisualsTab:AddToggle({Name = "Weapon ESP", Default = false, Callback = function(v) getgenv().WeaponEnabled = v end})
+VisualsTab:AddToggle({Name = "Skeleton ESP", Default = false, Callback = function(v) getgenv().SkeletonEnabled = v end})
+VisualsTab:AddToggle({Name = "Head Dot ESP", Default = false, Callback = function(v) getgenv().HeadDotEnabled = v end})
+VisualsTab:AddToggle({Name = "Chams", Default = false, Callback = function(v) getgenv().ChamsEnabled = v end})
+
+-- Extras Tab
+ExtrasTab:AddToggle({Name = "Rainbow Gun/Knife", Default = false, Callback = function(v) getgenv().RainbowGun = v end})
+
+OrionLib:Init()
+
+-- ESP Cleanup
+local function CleanupESP(plr)
+    if ESPBoxes[plr] then ESPBoxes[plr]:Remove() end
+    if ESPNames[plr] then ESPNames[plr]:Remove() end
+    if ESPWeapons[plr] then ESPWeapons[plr]:Remove() end
+    if ESPSkeletons[plr] then ESPSkeletons[plr]:Remove() end
+    if ESPHeadDots[plr] then ESPHeadDots[plr]:Remove() end
+    ESPBoxes[plr] = nil; ESPNames[plr] = nil; ESPWeapons[plr] = nil; ESPSkeletons[plr] = nil; ESPHeadDots[plr] = nil
+end
+
+-- ESP Create
+local function CreateESP(plr)
+    if plr == LP or getgenv().ESPEnabled == false then return end
+    CleanupESP(plr)
+    
+    local box = Drawing.new("Square")
+    box.Thickness = 2
+    box.Filled = false
+    box.Color = Color3.fromRGB(0,162,255)
+    box.Visible = false
+    ESPBoxes[plr] = box
+    
+    local name = Drawing.new("Text")
+    name.Size = 16
+    name.Center = true
+    name.Outline = true
+    name.Color = Color3.fromRGB(255,255,255)
+    name.Visible = false
+    ESPNames[plr] = name
+    
+    local weapon = Drawing.new("Text")
+    weapon.Size = 14
+    weapon.Center = true
+    weapon.Outline = true
+    weapon.Color = Color3.fromRGB(0,255,0)
+    weapon.Visible = false
+    ESPWeapons[plr] = weapon
+    
+    local headDot = Drawing.new("Circle")
+    headDot.Size = 4
+    headDot.Thickness = 1
+    headDot.Filled = true
+    headDot.Color = Color3.fromRGB(255,0,0)
+    headDot.Visible = false
+    ESPHeadDots[plr] = headDot
+end
+
+-- Skeleton Lines (simplified 6 lines)
+local function CreateSkeleton(plr)
+    local lines = {}
+    for i = 1, 6 do
+        local line = Drawing.new("Line")
+        line.Thickness = 1
+        line.Color = Color3.fromRGB(255,255,255)
+        line.Visible = false
+        lines[i] = line
+    end
+    ESPSkeletons[plr] = lines
+end
+
+Players.PlayerAdded:Connect(function(plr) plr.CharacterAdded:Connect(function() CreateESP(plr); CreateSkeleton(plr) end) end)
+for _, plr in Players:GetPlayers() do CreateESP(plr); CreateSkeleton(plr) end
+Players.PlayerRemoving:Connect(CleanupESP)
+
+-- Main Loop
+RS.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    FOVCircle.Visible = getgenv().FOVVisible and getgenv().AimbotEnabled
+    
+    -- Aimbot
+    if getgenv().AimbotEnabled then
+        local closest, dist = nil, math.huge
+        local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        for _, plr in Players:GetPlayers() do
+            if plr ~= LP and plr.Character and plr.Character:FindFirstChild(getgenv().AimPart) and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+                if getgenv().TeamCheck and plr.Team == LP.Team then continue end
+                local pos, onScreen = Camera:WorldToViewportPoint(plr.Character[getgenv().AimPart].Position)
+                if onScreen then
+                    local screenDist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if screenDist < dist and screenDist <= getgenv().AimFOV then
+                        dist = screenDist
+                        closest = plr.Character[getgenv().AimPart]
+                    end
+                end
+            end
+        end
+        if closest then
+            local targetPos = closest.Position
+            if getgenv().SmoothEnabled then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), 0.15)
+            else
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
             end
         end
     end
-    return ClosestChild
-end
-
--- Aimbot Loop
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Radius = getgenv().AimFOV
-    FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
-    FOVCircle.Color = getgenv().ESPColor
     
-    if getgenv().AimbotEnabled then
-        FOVCircle.Visible = true
-        local Target = GetClosestPlayer()
-        if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
-            if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Character[getgenv().AimPart].Position)
+    -- ESP Update
+    for _, plr in Players:GetPlayers() do
+        local char = plr.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+            if getgenv().TeamCheck and plr.Team == LP.Team then
+                if ESPBoxes[plr] then ESPBoxes[plr].Visible = false end
+                continue
+            end
+            
+            local root = char.HumanoidRootPart
+            local head = char.Head
+            local hrpPos = Camera:WorldToViewportPoint(root.Position)
+            local headPos = Camera:WorldToViewportPoint(head.Position)
+            local legPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0,4,0))
+            
+            if hrpPos.Z < 0 then
+                if ESPBoxes[plr] then ESPBoxes[plr].Visible = false end
+                continue
+            end
+            
+            local height = math.abs(headPos.Y - legPos.Y)
+            local width = height * 0.4
+            
+            -- Box
+            if getgenv().BoxEnabled and ESPBoxes[plr] then
+                ESPBoxes[plr].Size = Vector2.new(width, height)
+                ESPBoxes[plr].Position = Vector2.new(hrpPos.X - width/2, hrpPos.Y - height/2)
+                ESPBoxes[plr].Visible = true
+            end
+            
+            -- Name
+            if getgenv().NameEnabled and ESPNames[plr] then
+                ESPNames[plr].Text = plr.Name
+                ESPNames[plr].Position = Vector2.new(hrpPos.X, headPos.Y - 20)
+                ESPNames[plr].Visible = true
+            end
+            
+            -- Weapon (check tool)
+            if getgenv().WeaponEnabled and ESPWeapons[plr] then
+                local tool = char:FindFirstChildOfClass("Tool")
+                ESPWeapons[plr].Text = tool and tool.Name or "None"
+                ESPWeapons[plr].Position = Vector2.new(hrpPos.X, legPos.Y + 10)
+                ESPWeapons[plr].Visible = true
+            end
+            
+            -- Head Dot
+            if getgenv().HeadDotEnabled and ESPHeadDots[plr] then
+                local hPos = Camera:WorldToViewportPoint(head.Position)
+                ESPHeadDots[plr].Position = Vector2.new(hPos.X, hPos.Y)
+                ESPHeadDots[plr].Visible = true
+            end
+            
+            -- Skeleton (basic lines)
+            if getgenv().SkeletonEnabled and ESPSkeletons[plr] then
+                local lines = ESPSkeletons[plr]
+                local parts = {head, root}
+                -- Head to neck, neck to root, etc. (simplified)
+                lines[1].From = Camera:WorldToViewportPoint(head.Position)
+                lines[1].To = Camera:WorldToViewportPoint(root.Position)
+                lines[1].Visible = true
+                -- Add more lines as needed
+            end
+        else
+            CleanupESP(plr)
+        end
+    end
+    
+    -- Chams
+    if getgenv().ChamsEnabled then
+        for _, plr in Players:GetPlayers() do
+            if plr ~= LP and plr.Character then
+                local cham = plr.Character:FindFirstChild("DreamyCham")
+                if not cham then
+                    cham = Instance.new("Highlight", plr.Character)
+                    cham.Name = "DreamyCham"
+                    cham.FillColor = Color3.fromRGB(0,162,255)
+                    cham.OutlineColor = Color3.new(1,1,1)
+                end
+                cham.Enabled = true
             end
         end
     else
-        FOVCircle.Visible = false
+        for _, plr in Players:GetPlayers() do
+            if plr.Character and plr.Character:FindFirstChild("DreamyCham") then
+                plr.Character.DreamyCham:Destroy()
+            end
+        end
     end
-end)
-
--- Constant Walkspeed Loop
-task.spawn(function()
-    while task.wait() do
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            if LocalPlayer.Character.Humanoid.WalkSpeed ~= getgenv().WalkSpeedValue then
-                LocalPlayer.Character.Humanoid.WalkSpeed = getgenv().WalkSpeedValue
+    
+    -- Rainbow Gun/Knife
+    if getgenv().RainbowGun then
+        local vm = Camera:FindFirstChild("ViewModel") or Camera:FindFirstChildWhichIsA("Model")
+        if vm then
+            for _, part in vm:GetDescendants() do
+                if part:IsA("BasePart") then
+                    part.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+                end
             end
         end
     end
 end)
 
--- Tabs
-local Tab1 = Window:MakeTab({ Name = "Combat", Icon = "rbxassetid://4483362458" })
-local Tab2 = Window:MakeTab({ Name = "Visuals", Icon = "rbxassetid://4483360976" })
-local Tab3 = Window:MakeTab({ Name = "Skins", Icon = "rbxassetid://4483345998" })
-local Tab4 = Window:MakeTab({ Name = "Misc", Icon = "rbxassetid://4483361427" })
-
--- Combat
-Tab1:AddToggle({
-    Name = "Aimbot (Hold Right Click)",
-    Default = false,
-    Callback = function(Value) getgenv().AimbotEnabled = Value end    
-})
-
-Tab1:AddSlider({
-    Name = "Aim FOV",
-    Min = 0, Max = 500, Default = 100,
-    Color = Color3.fromRGB(139, 0, 255),
-    Increment = 1, ValueName = "px",
-    Callback = function(Value) getgenv().AimFOV = Value end    
-})
-
-Tab1:AddDropdown({
-    Name = "Aim Part",
-    Default = "Head",
-    Options = {"Head", "HumanoidRootPart", "UpperTorso"},
-    Callback = function(Value) getgenv().AimPart = Value end    
-})
-
--- Visuals
-Tab2:AddToggle({
-    Name = "ESP Enabled",
-    Default = false,
-    Callback = function(Value) 
-        getgenv().ESPEnabled = Value 
-        -- Basic ESP toggle logic would go here
-    end    
-})
-
-Tab2:AddColorpicker({
-    Name = "UI/FOV Color",
-    Default = Color3.fromRGB(139, 0, 255),
-    Callback = function(Value) getgenv().ESPColor = Value end     
-})
-
--- Skins (Placeholders as Skins require specific CBX Remote Spoofing)
-Tab3:AddLabel("Skin Changing requires game-specific remotes.")
-Tab3:AddDropdown({
-    Name = "Knife Skin",
-    Default = "Default",
-    Options = {"Karambit Fade", "Butterfly Doppler", "M9 Bayonet", "Flip Knife"},
-    Callback = function(Value) print("Skin selected: " .. Value) end    
-})
-
--- Misc
-Tab4:AddSlider({
-    Name = "Walkspeed",
-    Min = 16, Max = 100, Default = 16,
-    Color = Color3.fromRGB(139, 0, 255),
-    Increment = 1, ValueName = "spu",
-    Callback = function(Value) getgenv().WalkSpeedValue = Value end    
-})
-
-Tab4:AddButton({
-    Name = "Rejoin",
-    Callback = function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-    end    
-})
-
-Tab4:AddButton({
-    Name = "Destroy UI",
-    Callback = function() OrionLib:Destroy() end
-})
-
-OrionLib:Init()
-OrionLib:MakeNotification({
-    Name = "Dreamyware",
-    Content = "Script Loaded Successfully ⚡",
-    Time = 3
-})
+print("Dreamyware loaded - screenshot perfect ⚡")
